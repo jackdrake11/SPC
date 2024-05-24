@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Mapbox Map with GeoJSON Layers and Legend</title>
+  <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
+  <script src='https://api.mapbox.com/mapbox-gl-js/v2.6.1/mapbox-gl.js'></script>
+  <link href='https://api.mapbox.com/mapbox-gl-js/v2.6.1/mapbox-gl.css' rel='stylesheet' />
+  <style>
+    body { margin: 0; padding: 0; }
+    #map { position: absolute; top: 0; bottom: 0; width: 100%; }
+    #title-container { position: absolute; top: 0px; right: 0; left: 0; text-align: center; color: aliceblue; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    #legend { position: absolute; top: 2%; left: 1%; background-color: rgba(255, 255, 255, 0.8); padding: 8px; }
+    .legend-item { margin-bottom: 10px; }
+    .legend-color { width: 20px; height: 18px; display: inline-block; margin-right: 5px; }
+    #toggle-buttons { position: absolute; top:8%; left: 50%; transform: translateX(-50%); background-color: rgba(255, 255, 255, 0.8); padding: 10px; }
+    .toggle-checkbox { margin-bottom: 5px; cursor: pointer; padding: 5px 10px; }
+    #legend h3 { margin: 0px; text-align: center; padding: 3px; font-size: 20px; color: #333; font-family: Segoe UI, Tahoma, Geneva, Verdana, sans-serif; }
+    #logo-container { position: absolute; top: 5px; right: 5px; padding: 5px; background-color: rgba(255, 255, 255, 0.8); }
+  </style>
+</head>
+<body> 
+
+<div id='map'></div>
+<div id='legend'></div>
+<div id='title-container'>
+  <h1>Storm Prediction Center (SPC) Severe Weather Risk</h1>
+</div>
+<div id='toggle-buttons'>
+  <label class="toggle-checkbox">
+    <input type="checkbox" id="toggle-layer-1" checked onclick="toggleLayer('custom-layer', 'toggle-layer-1')">
+    Day 1
+  </label>
+  <label class="toggle-checkbox">
+    <input type="checkbox" id="toggle-layer-2" onclick="toggleLayer('custom-layer-2', 'toggle-layer-2')">
+    Day 2
+  </label>
+  <label class="toggle-checkbox">
+    <input type="checkbox" id="toggle-layer-3" onclick="toggleLayer('custom-layer-3', 'toggle-layer-3')">
+    Day 3
+  </label>
+</div>
+<div id="logo-container">
+  <img src="https://www.ctweather.com/wp-content/uploads/2018/02/CTWeather_logo.png" alt="CT Weather Logo" width="100">
+</div>
+
+<script>
+  mapboxgl.accessToken = 'pk.eyJ1IjoiamFja2RyYWtlMTEiLCJhIjoiY2x2eTJlbmd1MnBjdjJqcDYxbGhyOGhxMSJ9.ZT1ZiH_MWBeueG3C5Tc8sQ';
+
+  const map = new mapboxgl.Map({
+    container: 'map',
+    style: 'mapbox://styles/mapbox/dark-v10', // Change map style to dark
+    center: [-96.51, 39.5], // Center the map on Kansas
+    zoom: 4 // USA View
+  });
+
+  // Function to add GeoJSON layer
+  function addGeoJsonLayer(url, layerId, isVisible) {
+    fetch(url)
+      .then(response => response.json())
+      .then(data => {
+        map.addSource(layerId, {
+          type: 'geojson',
+          data: data
+        });
+
+        map.addLayer({
+          id: layerId,
+          type: 'fill',
+          source: layerId,
+          paint: {
+            'fill-color': ['get', 'fill'],
+            'fill-opacity': 0.17
+          }
+        });
+
+        // Set the initial visibility based on the provided parameter
+        const visibility = isVisible ? 'visible' : 'none';
+        map.setLayoutProperty(layerId, 'visibility', visibility);
+      })
+      .catch(error => console.error(`Error fetching GeoJSON from ${url}:`, error));
+  }
+
+  // Toggle layer visibility
+  function toggleLayer(layerId, checkboxId) {
+    const checkbox = document.getElementById(checkboxId);
+    const visibility = checkbox.checked ? 'visible' : 'none';
+    map.setLayoutProperty(layerId, 'visibility', visibility);
+  }
+
+  map.on('load', function () {
+    // Add the first GeoJSON layer and set it to visible
+    addGeoJsonLayer('https://www.spc.noaa.gov/products/outlook/day1otlk_cat.lyr.geojson', 'custom-layer', true);
+
+    // Add the second GeoJSON layer and set it to hidden
+    addGeoJsonLayer('https://www.spc.noaa.gov/products/outlook/day2otlk_cat.lyr.geojson', 'custom-layer-2', false);
+
+    // Add the third GeoJSON layer and set it to hidden
+    addGeoJsonLayer('https://www.spc.noaa.gov/products/outlook/day3otlk_cat.lyr.geojson', 'custom-layer-3', false);
+  });
+
+  // Add legend
+  const legend = document.getElementById('legend');
+  // Create and append legend title
+  const legendTitle = document.createElement('h3');
+  legendTitle.textContent = 'Risk Category';
+  legend.appendChild(legendTitle);
+  const legendItems = {
+    'Level 0 - Thunderstorm': '#6b9479',
+    'Level 1 - Marginal': '#62855f',
+    'Level 2 - Slight': '#c6cf7c',
+    'Level 3 - Enhanced': '#bd995e',
+    'Level 4 - Moderate': '#de786f',
+    'Level 5 - High': '#9c6594',
+    // Add more legend items as needed, with colors corresponding to your data
+  };
+
+  for (const [label, color] of Object.entries(legendItems)) {
+    const legendItem = document.createElement('div');
+    legendItem.className = 'legend-item';
+    const legendColor = document.createElement('div');
+    legendColor.className = 'legend-color';
+    legendColor.style.backgroundColor = color;
+    legendItem.appendChild(legendColor);
+    legendItem.appendChild(document.createTextNode(label));
+    legend.appendChild(legendItem);
+  }
+</script>
+
+</body>
+</html>
